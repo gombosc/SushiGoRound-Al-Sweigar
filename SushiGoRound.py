@@ -171,6 +171,62 @@ def navigateStartGameMenu():
     logging.debug('Clicked on Continue button.')
 
 
-main()
+#main()
+
+def startServing():
+
+    '''
+    Main game playing function
+    Seeing which orders are being requested from customers.
+    Creating dishes to fill orders.
+    Ordering more ingredients when running low on them.
+    Checking if customers haven't received their orders in a long time and remaking those orders.
+    Clearing finished plates.
+    Checking if ordered ingredients have arrived.
+    Checking if the game has been lost or if the level has been won.
+    '''
+
+    #reset all game stat variables
+    oldOrders = {}
+    backOrders = {}
+    remakeOrders = {}
+    remakeTimes = {}
+
+    LAST_GAME_OVER_CHECK = time.time()
+    ORDERING_COMPLETE = {SHRIMP: None, RICE: None, NORI: None,
+                         ROE: None, SALMON: None, UNAGI: None}
+
+
+
+    while True:
+        # Check for orders, see which are new and which are gone since last time.
+        currentOrders = getOrders()
+        added, removed = getOrdersDifference(currentOrders, oldOrders)
+        if added != {}:
+            logging.debug('New orders: %s' % (list(added.values())))
+            for k in added:
+                remakeTimes[k] = time.time() + TIME_TO_REMAKE
+        if removed != {}:
+            logging.debug('Removed orders: %s' % (list(removed.values())))
+            for k in removed:
+                del remakeTimes[k]
+
+
+
+        # Check if the remake times have past, and add those to the remakeOrders dictionary.
+        for k, remakeTime in copy.copy(remakeTimes).items():
+            if time.time() > remakeTime:
+                remakeTimes[k] = time.time() + TIME_TO_REMAKE # reset remake time
+                remakeOrders[k] = currentOrders[k]
+                logging.debug('%s added to remake orders.' % (currentOrders[k]))
+
+                # Attempt to make the order.
+            for pos, order in added.items():
+                result = makeOrder(order)
+                if result is not None:
+                    orderIngredient(result)
+                    backOrders[pos] = order
+                    logging.debug('Ingredients for %s not available. Putting on back order.' % (order))
+
 
 
